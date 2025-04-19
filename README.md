@@ -43,3 +43,7 @@ Here is the specific dataset I used, 'mpg': (https://github.com/mwaskom/seaborn-
 When using a native Seaborn dataset, I was able to have my code call the 'mpg' dataset directly.
 df = sns.load_dataset('mpg')
 ```
+
+pip install ucimlrepo
+
+https://archive.ics.uci.edu/dataset/9/auto+mpg
