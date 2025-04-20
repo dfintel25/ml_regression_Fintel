@@ -11,26 +11,17 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 columns = ["mpg", "cylinders", "displacement", "horsepower", "weight",
            "acceleration", "model_year", "origin", "car_name"]
 
-df = pd.read_csv("data/auto-mpg_data-original.csv", names=columns, sep=r'\s+', na_values='?')
+#df = pd.read_csv("data/auto-mpg_data-original.csv", names=columns, sep=r'\s+', na_values='?')
+df = pd.read_csv("../data/auto-mpg_data-original.csv", names=columns, sep=r'\s+', na_values='?')
 
-# Convert horsepower to numeric and handle missing values
-df['horsepower'] = pd.to_numeric(df['horsepower'], errors='coerce')
-df['horsepower'].fillna(df['horsepower'].median(), inplace=True)
+# Display the first 10 rows
+print(df.head(10))
 
-# Drop rows with missing target values before modeling
-df = df.dropna(subset=['mpg'])
+# Check for missing values
+print(df.isnull().sum())
 
-print("Column names:", df.columns.tolist())
-
-
-# Clean the data
-df['horsepower'].replace('?', np.nan, inplace=True)
-df['horsepower'] = pd.to_numeric(df['horsepower'])
-df.dropna(subset=['horsepower'], inplace=True)
-df.reset_index(drop=True, inplace=True)
-
-# Add new feature
-df['power_to_weight'] = df['horsepower'] / df['weight']
+# Summary statistics
+print(df.describe())
 
 # ----- Visualization Section -----
 
@@ -74,51 +65,74 @@ plt.xlabel('MPG')
 plt.show()
 
 # 6. Countplot for cylinders
-sns.countplot(x='cylinders', data=df, palette='pastel')
+sns.countplot(x='cylinders', hue='cylinders', data=df, palette='pastel', legend=False)
 plt.title('Count of Cars by Cylinder Count')
 plt.xlabel('Cylinders')
 plt.ylabel('Count')
 plt.show()
 
+# Convert horsepower to numeric and handle missing values
+df['horsepower'] = pd.to_numeric(df['horsepower'], errors='coerce')
+df['horsepower'] = df['horsepower'].fillna(df['horsepower'].median())
+
+# Drop rows with missing target values before modeling
+df = df.dropna(subset=['mpg'])
+print("Column names:", df.columns.tolist())
+
+# Clean the data
+df['horsepower'] = df['horsepower'].fillna(df['horsepower'].median())
+
+# Add new feature
+df['power_to_weight'] = df['horsepower'] / df['weight']
+
 # ----- Regression Section -----
 
-# Feature sets
-X1 = df[['horsepower']]
-X2 = df[['weight']]
-X3 = df[['horsepower', 'weight']]
-X4 = df[['acceleration']]
-y = df['mpg']
+# Feature sets (after splitting data into train/test)
+X1 = df[['horsepower']]  # Input feature
+X2 = df[['weight']]  # Input feature
+X3 = df[['horsepower', 'weight']]  # Input features
+X4 = df[['acceleration']]  # Input feature
+y = df['mpg']  # Target variable
 
-# Train-test split
+# Train-test split (before scaling)
 X1_train, X1_test, y_train1, y_test1 = train_test_split(X1, y, test_size=0.2, random_state=123)
 X2_train, X2_test, y_train2, y_test2 = train_test_split(X2, y, test_size=0.2, random_state=123)
 X3_train, X3_test, y_train3, y_test3 = train_test_split(X3, y, test_size=0.2, random_state=123)
 X4_train, X4_test, y_train4, y_test4 = train_test_split(X4, y, test_size=0.2, random_state=123)
 
-# Train models
-lr1 = LinearRegression().fit(X1_train, y_train1)
-lr2 = LinearRegression().fit(X2_train, y_train2)
-lr3 = LinearRegression().fit(X3_train, y_train3)
-lr4 = LinearRegression().fit(X4_train, y_train4)
+# Apply StandardScaler to the feature sets (scaling after split)
+scaler1 = StandardScaler()
+X1_train_scaled = scaler1.fit_transform(X1_train)
+X1_test_scaled = scaler1.transform(X1_test)
 
-# Predictions
-y_pred1 = lr1.predict(X1_test)
-y_pred2 = lr2.predict(X2_test)
-y_pred3 = lr3.predict(X3_test)
-y_pred4 = lr4.predict(X4_test)
+scaler2 = StandardScaler()
+X2_train_scaled = scaler2.fit_transform(X2_train)
+X2_test_scaled = scaler2.transform(X2_test)
 
-# Evaluation function
-def evaluate_model(y_true, y_pred, label):
+scaler3 = StandardScaler()
+X3_train_scaled = scaler3.fit_transform(X3_train)
+X3_test_scaled = scaler3.transform(X3_test)
+
+scaler4 = StandardScaler()
+X4_train_scaled = scaler4.fit_transform(X4_train)
+X4_test_scaled = scaler4.transform(X4_test)
+
+# Train models using a function to reduce redundancy
+def train_and_evaluate(X_train, X_test, y_train, y_test, label):
+    model = LinearRegression().fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    
+    # Evaluation function
     print(f"\n{label}")
-    print("R² Score:", r2_score(y_true, y_pred))
-    print("RMSE:", mean_squared_error(y_true, y_pred) ** 0.5)
-    print("MAE:", mean_absolute_error(y_true, y_pred))
+    print("R² Score:", r2_score(y_test, y_pred))
+    print("RMSE:", mean_squared_error(y_test, y_pred) ** 0.5)
+    print("MAE:", mean_absolute_error(y_test, y_pred))
 
-# Evaluate each case
-evaluate_model(y_test1, y_pred1, "Case 1: Horsepower")
-evaluate_model(y_test2, y_pred2, "Case 2: Weight")
-evaluate_model(y_test3, y_pred3, "Case 3: Horsepower + Weight")
-evaluate_model(y_test4, y_pred4, "Case 4: Acceleration")
+# Model training and evaluation for all cases
+train_and_evaluate(X1_train_scaled, X1_test_scaled, y_train1, y_test1, "Case 1: Horsepower")
+train_and_evaluate(X2_train_scaled, X2_test_scaled, y_train2, y_test2, "Case 2: Weight")
+train_and_evaluate(X3_train_scaled, X3_test_scaled, y_train3, y_test3, "Case 3: Horsepower + Weight")
+train_and_evaluate(X4_train_scaled, X4_test_scaled, y_train4, y_test4, "Case 4: Acceleration")
 
 # Visualize regression results
 plt.figure(figsize=(12, 6))
@@ -136,3 +150,61 @@ plt.title("Case 3: Horsepower + Weight")
 
 plt.tight_layout()
 plt.show()
+
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.model_selection import cross_val_score
+
+# Define the features
+X = df[['horsepower', 'weight', 'acceleration']]  # Use relevant features
+y = df['mpg']
+
+# 5.1 Pipeline 1: Imputer → StandardScaler → Linear Regression
+pipeline1 = Pipeline([
+    ('preprocessor', ColumnTransformer([
+        ('num', Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler())
+        ]), ['horsepower', 'weight', 'acceleration'])
+    ])),
+    ('model', LinearRegression())
+])
+
+# 5.2 Pipeline 2: Imputer → Polynomial Features (degree=3) → StandardScaler → Linear Regression
+pipeline2 = Pipeline([
+    ('preprocessor', ColumnTransformer([
+        ('num', Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('poly', PolynomialFeatures(degree=3)),
+            ('scaler', StandardScaler())
+        ]), ['horsepower', 'weight', 'acceleration'])
+    ])),
+    ('model', LinearRegression())
+])
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123)
+
+# 5.3 Compare the performance of both pipelines using cross-validation
+def evaluate_pipeline(pipeline, X_train, y_train, X_test, y_test):
+    pipeline.fit(X_train, y_train)
+    y_pred = pipeline.predict(X_test)
+    
+    print("R² Score:", r2_score(y_test, y_pred))
+    print("RMSE:", mean_squared_error(y_test, y_pred) ** 0.5)
+    print("MAE:", mean_absolute_error(y_test, y_pred))
+
+# Evaluate both pipelines
+print("Evaluating Pipeline 1: Imputer → StandardScaler → Linear Regression")
+evaluate_pipeline(pipeline1, X_train, y_train, X_test, y_test)
+
+print("\nEvaluating Pipeline 2: Imputer → Polynomial Features → StandardScaler → Linear Regression")
+evaluate_pipeline(pipeline2, X_train, y_train, X_test, y_test)
+
+# Optional: Compare performance using cross-validation for each pipeline
+cross_val_score(pipeline1, X, y, cv=5, scoring='neg_mean_squared_error')
+cross_val_score(pipeline2, X, y, cv=5, scoring='neg_mean_squared_error')
+
+# This will give an idea of how well each model performs on unseen data, including polynomial transformations

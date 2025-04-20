@@ -1,4 +1,4 @@
-# ml_regression_Fintel# applied-ml-derekfintel
+# ml_regression_Fintel# 
 
 ### Steps
 ```
