@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 columns = ["mpg", "cylinders", "displacement", "horsepower", "weight",
            "acceleration", "model_year", "origin", "car_name"]
 
-df = pd.read_csv("auto-mpg_data-original.csv", names=columns, sep=r'\s+', na_values='?')
+df = pd.read_csv("data/auto-mpg_data-original.csv", names=columns, sep=r'\s+', na_values='?')
 
 # Convert horsepower to numeric and handle missing values
 df['horsepower'] = pd.to_numeric(df['horsepower'], errors='coerce')
